@@ -1,2 +1,2 @@
 # real_time_transcription
-Real Time Transcription service for connecting with LLMs
+Real time transcription app for connecting with LLMs.
