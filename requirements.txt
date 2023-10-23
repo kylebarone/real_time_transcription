@@ -1,0 +1,4 @@
+pyaudio
+websockets
+streamlit
+python-dotenv
