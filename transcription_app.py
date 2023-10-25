@@ -10,16 +10,15 @@ import streamlit as st
 
 load_dotenv()
 
-if 'run' not in st.session_state:
-    st.session_state['run'] = False
 
+# Mircophone Configuration
 FRAMES_PER_BUFFER = 3200
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 16000
 p = pyaudio.PyAudio()
 
-# start recording
+# Microphone Stream 
 stream = p.open(
     format=FORMAT,
     channels=CHANNELS,
@@ -28,24 +27,42 @@ stream = p.open(
     frames_per_buffer=FRAMES_PER_BUFFER
 )
 
+
+if 'run' not in st.session_state:
+    st.session_state['run'] = False
+if 'transcription_text' not in st.session_state:
+    st.session_state['transcription_text'] = ''
+
+
 def start_listening():
     st.session_state["run"] = True
 
 def stop_listening():
     st.session_state["run"] = False
 
+def clear_text():
+    st.session_state['transcription_text'] = ''
+
+def send_transcription_api():
+    # Add your API call logic here
+    st.success("Transcription sent!")
+
 st.title("Real Time Transcription")
 
 start, stop = st.columns(2)
-start.button("Start Listening", on_click=start_listening())
-stop.button("Stop Listening", on_click=stop_listening())
+start.button("Start Listening", on_click=start_listening)
+stop.button("Stop Listening", on_click=stop_listening)
 
+st.text_area("Transcription", value=st.session_state["transcription_text"], height=300, disabled=True)
+
+send_button, clear_button = st.columns(2)
+send_button.button("Send Transcription", on_click=send_transcription_api)
+clear_button.button("Clear Transcription", on_click=clear_text)
 
 # used for realtime transcription model
 ASSEMBLY_URL = "wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000"
 
 # This constantly sends audio to AssemblyAI and recieves transcription
-
 
 async def send_recieve():
 
@@ -88,8 +105,8 @@ async def send_recieve():
                 try:
                     result_str = await websocket.recv()
                     if json.loads(result_str)['message_type'] == 'FinalTranscript':
-                        print(json.loads(result_str)['text'])
-                        st.markdown(json.loads(result_str)['text'])
+                        transcribed_text = json.loads(result_str)['text']
+                        st.session_state['transcription_text'] += f"\n{transcribed_text}"
                 except websockets.exceptions.ConnectionClosedError as e:
                     print("Connection Closed")
                     print(e)
@@ -101,5 +118,5 @@ async def send_recieve():
 
         send_result, recieve_result = await asyncio.gather(send(), recieve())
 
-while True:
-    asyncio.run(send_recieve())
+
+asyncio.run(send_recieve())
